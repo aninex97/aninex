@@ -1,7 +1,6 @@
 import express from 'express';
 import Episode from '../models/Episode.js';
 import Anime from '../models/Anime.js';
-import User from '../models/User.js';
 
 const router = express.Router();
 
@@ -19,20 +18,12 @@ router.get('/:animeId/:episodeId', async (req, res) => {
     await Episode.findByIdAndUpdate(episodeId, { $inc: { views: 1 } });
     await Anime.findByIdAndUpdate(animeId, { $inc: { views: 1 } });
 
-    // Get next episode
-    const nextEpisode = await Episode.findOne({
-      animeId,
-      $or: [
-        { season: episode.season, episode: { $gt: episode.episode } },
-        { season: { $gt: episode.season } }
-      ]
-    }).sort({ season: 1, episode: 1 });
-
     res.json({
       episode,
-      nextEpisode: nextEpisode || null
+      anime: episode.animeId
     });
   } catch (error) {
+    console.error('Get video error:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -47,6 +38,7 @@ router.get('/sources/:episodeId', async (req, res) => {
     
     res.json(episode.sources);
   } catch (error) {
+    console.error('Get sources error:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -56,16 +48,18 @@ router.post('/watch-history', async (req, res) => {
   try {
     const { animeId, episodeId, currentTime, duration } = req.body;
     
-    // For now, just acknowledge the request
-    // In a real app, you'd save this to user's watch history
+    // For demo purposes - just return success
+    // In real app, save to user's watch history
     res.json({ 
       message: 'Watch history updated',
       animeId,
       episodeId,
       currentTime,
-      duration
+      duration,
+      watchedAt: new Date().toISOString()
     });
   } catch (error) {
+    console.error('Watch history error:', error);
     res.status(400).json({ message: error.message });
   }
 });
