@@ -15,16 +15,17 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: false, // Disable sourcemaps for smaller build
+    sourcemap: false,
+    // Ensure proper asset handling
+    assetsDir: 'assets',
     rollupOptions: {
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
-          video: ['video.js'],
+          router: ['react-router-dom'],
         }
       }
     }
   },
-  // Add base URL for production
-  base: './',
+  // Remove base: './' as it can cause issues
 })
