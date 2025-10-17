@@ -1,13 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-
-// ES module fix for __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
@@ -17,36 +11,40 @@ const app = express();
 app.use(cors({
   origin: [
     'http://localhost:3000',
-    'https://anime-world-frontend.vercel.app',
-    'https://your-custom-domain.vercel.app'
+    'https://anime-world-frontend.vercel.app'
   ],
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Database connection with retry logic
+// Database connection
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI, {
+    await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    console.log(`✅ MongoDB Atlas Connected: ${conn.connection.host}`);
+    console.log('✅ MongoDB Atlas connected successfully');
   } catch (error) {
-    console.error('❌ MongoDB connection error:', error);
-    // Retry connection after 5 seconds
-    setTimeout(connectDB, 5000);
+    console.error('❌ MongoDB connection failed:', error);
+    process.exit(1);
   }
 };
 
 connectDB();
 
-// Import routes (using dynamic imports for ES modules)
-app.use('/api/auth', (await import('./routes/auth.js')).default);
-app.use('/api/anime', (await import('./routes/anime.js')).default);
-app.use('/api/video', (await import('./routes/video.js')).default);
-app.use('/api/admin', (await import('./routes/admin.js')).default);
+// Import routes
+import authRoutes from './routes/auth.js';
+import animeRoutes from './routes/anime.js';
+import videoRoutes from './routes/video.js';
+import adminRoutes from './routes/admin.js';
+
+// Use routes
+app.use('/api/auth', authRoutes);
+app.use('/api/anime', animeRoutes);
+app.use('/api/video', videoRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -70,20 +68,6 @@ app.get('/', (req, res) => {
       health: '/health',
       api: '/api',
       docs: 'Coming soon...'
-    }
-  });
-});
-
-// API info endpoint
-app.get('/api', (req, res) => {
-  res.json({
-    message: 'Anime World API',
-    version: '1.0.0',
-    endpoints: {
-      auth: '/api/auth',
-      anime: '/api/anime',
-      video: '/api/video',
-      admin: '/api/admin'
     }
   });
 });
