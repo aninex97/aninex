@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const settingsSchema = new mongoose.Schema({
   site: {
@@ -29,4 +29,5 @@ const settingsSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('Settings', settingsSchema);
+const Settings = mongoose.model('Settings', settingsSchema);
+export default Settings;
