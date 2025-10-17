@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
     if (type) filter.type = type;
     if (genre) filter.genres = { $in: [genre] };
     if (language) filter['languages.audio'] = { $in: [language] };
-    if (year) filter['metadata.year'] = year;
+    if (year) filter['metadata.year'] = parseInt(year);
     if (status) filter['metadata.status'] = status;
 
     const anime = await Anime.find(filter)
@@ -26,10 +26,11 @@ router.get('/', async (req, res) => {
     res.json({
       anime,
       totalPages: Math.ceil(total / limit),
-      currentPage: page,
+      currentPage: parseInt(page),
       total
     });
   } catch (error) {
+    console.error('Get anime error:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -44,8 +45,12 @@ router.get('/:id', async (req, res) => {
     
     const episodes = await Episode.find({ animeId: req.params.id }).sort({ season: 1, episode: 1 });
     
-    res.json({ anime, episodes });
+    res.json({ 
+      anime,
+      episodes 
+    });
   } catch (error) {
+    console.error('Get anime by ID error:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -55,12 +60,14 @@ router.get('/search', async (req, res) => {
   try {
     const { q, page = 1, limit = 20 } = req.query;
     
+    if (!q) {
+      return res.status(400).json({ message: 'Search query is required' });
+    }
+
     const anime = await Anime.find({
       $or: [
         { 'title.en': { $regex: q, $options: 'i' } },
         { 'title.hi': { $regex: q, $options: 'i' } },
-        { 'title.ta': { $regex: q, $options: 'i' } },
-        { 'title.te': { $regex: q, $options: 'i' } },
         { 'title.ja': { $regex: q, $options: 'i' } }
       ]
     })
@@ -69,6 +76,21 @@ router.get('/search', async (req, res) => {
 
     res.json(anime);
   } catch (error) {
+    console.error('Search anime error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get featured anime
+router.get('/featured/featured', async (req, res) => {
+  try {
+    const featuredAnime = await Anime.find({ isFeatured: true })
+      .limit(10)
+      .sort({ views: -1 });
+
+    res.json(featuredAnime);
+  } catch (error) {
+    console.error('Get featured anime error:', error);
     res.status(500).json({ message: error.message });
   }
 });
