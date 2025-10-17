@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const episodeSchema = new mongoose.Schema({
   animeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Anime', required: true },
@@ -32,4 +32,5 @@ const episodeSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('Episode', episodeSchema);
+const Episode = mongoose.model('Episode', episodeSchema);
+export default Episode;
