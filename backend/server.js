@@ -1,76 +1,114 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const path = require('path');
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
 
-// Load environment variables
+// ES module fix for __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 dotenv.config();
 
 const app = express();
 
 // Middleware
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'https://anime-world-frontend.vercel.app',
+    'https://your-custom-domain.vercel.app'
+  ],
+  credentials: true
+}));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// MongoDB Connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/animeworld';
+// Database connection with retry logic
+const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(process.env.MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log(`✅ MongoDB Atlas Connected: ${conn.connection.host}`);
+  } catch (error) {
+    console.error('❌ MongoDB connection error:', error);
+    // Retry connection after 5 seconds
+    setTimeout(connectDB, 5000);
+  }
+};
 
-mongoose.connect(MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => {
-  console.log('✅ Connected to MongoDB Atlas');
-})
-.catch((error) => {
-  console.error('❌ MongoDB connection error:', error);
-  console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Not set');
+connectDB();
+
+// Import routes (using dynamic imports for ES modules)
+app.use('/api/auth', (await import('./routes/auth.js')).default);
+app.use('/api/anime', (await import('./routes/anime.js')).default);
+app.use('/api/video', (await import('./routes/video.js')).default);
+app.use('/api/admin', (await import('./routes/admin.js')).default);
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  const dbStatus = mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected';
+  res.status(200).json({ 
+    status: 'OK', 
+    message: 'Server is running',
+    database: dbStatus,
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString()
+  });
 });
 
-// Basic route
+// Root endpoint
 app.get('/', (req, res) => {
-  res.json({ 
-    message: 'Welcome to Anime World Backend API',
-    status: 'Server is running!',
-    timestamp: new Date().toISOString()
+  res.json({
+    message: '🎌 Anime World Backend API',
+    version: '1.0.0',
+    status: 'Running',
+    endpoints: {
+      health: '/health',
+      api: '/api',
+      docs: 'Coming soon...'
+    }
   });
 });
 
-// Health check route
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'Healthy',
-    database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Test route
-app.get('/api/test', (req, res) => {
-  res.json({ 
-    message: 'API is working!',
-    data: ['anime', 'movies', 'series']
+// API info endpoint
+app.get('/api', (req, res) => {
+  res.json({
+    message: 'Anime World API',
+    version: '1.0.0',
+    endpoints: {
+      auth: '/api/auth',
+      anime: '/api/anime',
+      video: '/api/video',
+      admin: '/api/admin'
+    }
   });
 });
 
 // Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
+app.use((error, req, res, next) => {
+  console.error('Error:', error);
+  res.status(500).json({ 
+    message: 'Something went wrong!',
+    ...(process.env.NODE_ENV === 'development' && { error: error.message })
+  });
 });
 
 // 404 handler
 app.use('*', (req, res) => {
-  res.status(404).json({ error: 'Route not found' });
+  res.status(404).json({
+    message: 'Route not found',
+    path: req.originalUrl
+  });
 });
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`🚀 Anime World Backend Server running on port ${PORT}`);
-  console.log(`📡 Health check: http://localhost:${PORT}/api/health`);
-  console.log(`🔗 MongoDB: ${mongoose.connection.readyState === 1 ? 'Connected' : 'Connecting...'}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`📍 Health check: http://localhost:${PORT}/health`);
 });
-
-module.exports = app;
