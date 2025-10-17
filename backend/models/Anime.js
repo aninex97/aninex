@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const animeSchema = new mongoose.Schema({
   title: {
@@ -35,4 +35,5 @@ const animeSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('Anime', animeSchema);
+const Anime = mongoose.model('Anime', animeSchema);
+export default Anime;
