@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
@@ -12,9 +12,15 @@ import Series from './pages/Series';
 import VideoPlayer from './pages/VideoPlayer';
 import Search from './pages/Search';
 import Profile from './pages/Profile';
+import { testConnection } from './services/api';
 import './styles/index.css';
 
 function App() {
+  useEffect(() => {
+    // Test backend connection on app start
+    testConnection();
+  }, []);
+
   return (
     <LanguageProvider>
       <AuthProvider>
