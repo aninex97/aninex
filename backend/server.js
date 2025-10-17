@@ -3,17 +3,22 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
+// Import routes
+import authRoutes from './routes/auth.js';
+import animeRoutes from './routes/anime.js';
+import videoRoutes from './routes/video.js';
+import adminRoutes from './routes/admin.js';
+
 dotenv.config();
 
 const app = express();
 
-// CORS configuration - Add your Vercel frontend URL
+// CORS configuration
 app.use(cors({
   origin: [
     'http://localhost:3000',
     'https://anime-world-frontend.vercel.app',
-    'https://anime-world-frontend-git-main-yourusername.vercel.app',
-    'https://anime-world-frontend-yourusername.vercel.app'
+    'https://*.vercel.app'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -39,19 +44,7 @@ const connectDB = async () => {
 
 connectDB();
 
-// Import routes
-import authRoutes from './routes/auth.js';
-import animeRoutes from './routes/anime.js';
-import videoRoutes from './routes/video.js';
-import adminRoutes from './routes/admin.js';
-
-// Use routes
-app.use('/api/auth', authRoutes);
-app.use('/api/anime', animeRoutes);
-app.use('/api/video', videoRoutes);
-app.use('/api/admin', adminRoutes);
-
-// Health check with more info
+// Health check endpoint - MUST be before other routes
 app.get('/health', (req, res) => {
   const dbStatus = mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected';
   res.status(200).json({ 
@@ -59,13 +52,7 @@ app.get('/health', (req, res) => {
     message: 'Server is running',
     database: dbStatus,
     environment: process.env.NODE_ENV || 'development',
-    timestamp: new Date().toISOString(),
-    cors: {
-      allowedOrigins: [
-        'http://localhost:3000',
-        'https://anime-world-frontend.vercel.app'
-      ]
-    }
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -86,6 +73,30 @@ app.get('/', (req, res) => {
   });
 });
 
+// API routes
+app.use('/api/auth', authRoutes);
+app.use('/api/anime', animeRoutes);
+app.use('/api/video', videoRoutes);
+app.use('/api/admin', adminRoutes);
+
+// 404 handler for API routes
+app.use('/api/*', (req, res) => {
+  res.status(404).json({
+    message: 'API route not found',
+    path: req.originalUrl,
+    availableEndpoints: ['/api/auth', '/api/anime', '/api/video', '/api/admin']
+  });
+});
+
+// General 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({
+    message: 'Route not found',
+    path: req.originalUrl,
+    availableRoutes: ['/', '/health', '/api']
+  });
+});
+
 // Error handling middleware
 app.use((error, req, res, next) => {
   console.error('Error:', error);
@@ -95,20 +106,12 @@ app.use((error, req, res, next) => {
   });
 });
 
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({
-    message: 'Route not found',
-    path: req.originalUrl,
-    availableEndpoints: ['/health', '/api/auth', '/api/anime', '/api/video', '/api/admin']
-  });
-});
-
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`📍 Health check: http://localhost:${PORT}/health`);
-  console.log(`🔗 Frontend URLs configured for CORS`);
+  console.log(`📍 API Root: http://localhost:${PORT}/api`);
+  console.log(`🔗 CORS enabled for frontend`);
 });
