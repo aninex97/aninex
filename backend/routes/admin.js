@@ -15,8 +15,8 @@ router.get('/dashboard', async (req, res) => {
     
     const recentAnime = await Anime.find()
       .sort({ createdAt: -1 })
-      .limit(10)
-      .select('title type createdAt');
+      .limit(5)
+      .select('title type createdAt views');
 
     res.json({
       totalAnime,
@@ -25,6 +25,7 @@ router.get('/dashboard', async (req, res) => {
       recentAnime
     });
   } catch (error) {
+    console.error('Dashboard error:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -36,6 +37,7 @@ router.post('/anime', async (req, res) => {
     await anime.save();
     res.status(201).json(anime);
   } catch (error) {
+    console.error('Create anime error:', error);
     res.status(400).json({ message: error.message });
   }
 });
@@ -53,6 +55,7 @@ router.put('/anime/:id', async (req, res) => {
     }
     res.json(anime);
   } catch (error) {
+    console.error('Update anime error:', error);
     res.status(400).json({ message: error.message });
   }
 });
@@ -70,6 +73,7 @@ router.post('/episodes', async (req, res) => {
 
     res.status(201).json(episode);
   } catch (error) {
+    console.error('Create episode error:', error);
     res.status(400).json({ message: error.message });
   }
 });
@@ -84,6 +88,7 @@ router.get('/settings', async (req, res) => {
     }
     res.json(settings);
   } catch (error) {
+    console.error('Get settings error:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -98,6 +103,7 @@ router.put('/settings', async (req, res) => {
     );
     res.json(settings);
   } catch (error) {
+    console.error('Update settings error:', error);
     res.status(400).json({ message: error.message });
   }
 });
